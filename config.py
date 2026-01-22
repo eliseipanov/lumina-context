@@ -28,6 +28,7 @@ SPRINTS_DIR = os.path.join(PROJECT_ROOT, 'sprints')
 OLLAMA_URL = os.getenv('OLLAMA_URL', '').strip()
 VISION_MODEL_NAME = os.getenv('VISION_MODEL_NAME', '').strip()
 VISION_BATCH_SIZE = int(os.getenv('VISION_BATCH_SIZE', 5))
+DEBUG_MODE = os.getenv('DEBUG_MODE', 'false').strip().lower() == 'true'
 
 MODEL_PROMPT_MAP = {
     "minicpm-v:latest": os.getenv('VISION_PROMPT_MINICPM', 'live_ref_v1_minicpm-v.md').strip(),
