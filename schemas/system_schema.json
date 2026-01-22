@@ -1,0 +1,33 @@
+{
+  "project": "Chanker Vanya / Lumina",
+  "version": "1.0",
+  "paths": {
+    "raw_data": "data/raw_md/",
+    "catalog": "data/catalog/",
+    "chunks": "data/chunks/",
+    "vocabulary": "vocab/lumina_vocabulary.md"
+  },
+  "passport_structure": {
+    "required_fields": [
+      "domain",
+      "scene_context",
+      "summary",
+      "axes_scores",
+      "mandatory_tags",
+      "discovery_tags"
+    ],
+    "axes": [
+      "luminance",
+      "optical",
+      "somatic",
+      "material",
+      "compositional",
+      "psychographic"
+    ]
+  },
+  "db_mapping": {
+    "table_name": "passports",
+    "primary_key": "id",
+    "json_column": "data"
+  }
+}

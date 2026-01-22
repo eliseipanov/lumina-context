@@ -1,0 +1,9 @@
+trafilatura
+lxml_html_clean
+requests
+requests[socks]
+beautifulsoup4
+pysocks
+ollama
+html_clean
+mcp>=1.0.0
