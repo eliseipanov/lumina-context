@@ -58,8 +58,8 @@ def vanya_monolith():
             })
 
     # 4. EXPORT TO JSON
-    if not os.path.exists("data_chunks"): os.makedirs("data_chunks")
-    out_path = f"data_chunks/{slug}.json"
+    if not os.path.exists(config.CHUNKS_DIR): os.makedirs(config.CHUNKS_DIR)
+    out_path = os.path.join(config.CHUNKS_DIR, f"{slug}.json")
     
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(final_dataset, f, ensure_ascii=False, indent=4)
