@@ -5,7 +5,7 @@ import os
 import random
 import re
 from datetime import datetime
-import config_old 
+import old_files.config_old as config_old 
 
 def vanya_cleaner(text):
     """Видаляє сміття, яке заважає AI"""

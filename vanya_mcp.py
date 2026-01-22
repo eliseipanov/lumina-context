@@ -10,7 +10,7 @@ import atexit
 import logging
 import traceback
 from datetime import datetime
-import config_old
+import old_files.config_old as config_old
 from mcp.server.stdio import stdio_server
 from mcp.server import Server
 from mcp.server.models import InitializationOptions
