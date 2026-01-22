@@ -1,0 +1,17 @@
+{
+  "5284eedba6c7efc2410a46493fe8577901b3a5006df6b085b6dadcfa281c3ce3": {
+    "status": "PROCESSED",
+    "path": "/var/www/chanker_vanya/data/raw_images/test_image3.jpg",
+    "timestamp": "2026-01-22T19:57:55.136641"
+  },
+  "18789ff3690799f8c16b8692e46f417613b4c569119632b065bd96d9327dbf64": {
+    "status": "ERROR",
+    "path": "/var/www/chanker_vanya/data/raw_images/test_image.jpg",
+    "timestamp": "2026-01-22T20:00:55.235612"
+  },
+  "ca1f1c3643a265b2fab9ed616fd87b53f6290107ad2889e1268a75f1516b9531": {
+    "status": "ERROR",
+    "path": "/var/www/chanker_vanya/data/raw_images/test_image2.jpg",
+    "timestamp": "2026-01-22T20:03:55.407872"
+  }
+}

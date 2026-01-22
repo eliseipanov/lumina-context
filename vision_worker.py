@@ -4,6 +4,7 @@ import json
 import requests
 import re
 import time
+import hashlib
 import config
 from datetime import datetime
 
@@ -15,6 +16,28 @@ def log(message):
 def sanitize_axis_name(axis):
     """Sanitize axis name for directory use."""
     return re.sub(r'[^\w\-_]', '', axis)
+
+def load_registry():
+    """Load the processing registry."""
+    registry_path = os.path.join(config.PROJECT_ROOT, 'data', 'registry.json')
+    if os.path.exists(registry_path):
+        with open(registry_path, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    return {}
+
+def save_registry(registry):
+    """Save the processing registry."""
+    registry_path = os.path.join(config.PROJECT_ROOT, 'data', 'registry.json')
+    with open(registry_path, 'w', encoding='utf-8') as f:
+        json.dump(registry, f, indent=2)
+
+def calculate_image_hash(image_path):
+    """Calculate SHA-256 hash of image file."""
+    hash_sha256 = hashlib.sha256()
+    with open(image_path, 'rb') as f:
+        for chunk in iter(lambda: f.read(4096), b''):
+            hash_sha256.update(chunk)
+    return hash_sha256.hexdigest()
 
 def load_prompt():
     """Load the system prompt from CURRENT_PROMPT_PATH."""
@@ -95,26 +118,40 @@ def analyze_image(image_path, prompt):
         log(f"Failed string (first 200 chars): {response_text[:200]}")
         raise
 
-def save_chunk(axis, content, tags, source):
-    """Save a chunk as Markdown with YAML header."""
+def save_consolidated_chunks(axis, chunks, image_name, image_hash):
+    """Save all chunks for an axis from one image into a single file."""
     axis_dir = os.path.join(config.CHUNKS_DIR, axis)
     os.makedirs(axis_dir, exist_ok=True)
 
-    timestamp = datetime.now().strftime('%H%M%S')
-    slug = os.path.splitext(os.path.basename(source))[0]
-    filename = f"{timestamp}_{slug}_chunk.md"
+    filename = f"{image_name}_{image_hash}.md"
     filepath = os.path.join(axis_dir, filename)
 
-    yaml_header = f"---\naxis: {axis}\ntags: {json.dumps(tags)}\nsource: {source}\n---\n\n"
+    # Collect all tags
+    all_tags = list(set(tag for chunk in chunks for tag in chunk['tags']))
+
+    # Concatenate contents with separators
+    contents = []
+    for i, chunk in enumerate(chunks):
+        if i > 0:
+            contents.append("\n---\n")
+        contents.append(chunk['content'])
+
+    full_content = ''.join(contents)
+
+    yaml_header = f"---\naxis: {axis}\ntags: {json.dumps(all_tags)}\nsource: {image_name}\n---\n\n"
     with open(filepath, 'w', encoding='utf-8') as f:
-        f.write(yaml_header + content)
+        f.write(yaml_header + full_content)
 
     return filepath
 
-def process_analysis_result(result, image_path):
-    """Process the JSON result and save chunks."""
+def process_analysis_result(result, image_path, image_hash):
+    """Process the JSON result and save consolidated chunks."""
     saved_files = []
+    image_name = os.path.splitext(os.path.basename(image_path))[0]
+
     if 'chunks' in result:
+        # Group chunks by axis
+        axis_chunks = {}
         for chunk in result['chunks']:
             raw_axis = chunk.get('axis', 'Unknown')
             axes = [sanitize_axis_name(ax.strip()) for ax in raw_axis.split('|') if ax.strip()]
@@ -122,8 +159,15 @@ def process_analysis_result(result, image_path):
             content = chunk.get('content', '')
             tags = chunk.get('tags', [])
             for axis in axes:
-                filepath = save_chunk(axis, content, tags, os.path.basename(image_path))
-                saved_files.append(filepath)
+                if axis not in axis_chunks:
+                    axis_chunks[axis] = []
+                axis_chunks[axis].append({'content': content, 'tags': tags})
+
+        # Save consolidated files
+        for axis, chunks in axis_chunks.items():
+            filepath = save_consolidated_chunks(axis, chunks, image_name, image_hash)
+            saved_files.append(filepath)
+
     return saved_files
 
 def test_ollama_connection():
@@ -137,7 +181,7 @@ def test_ollama_connection():
         return False, str(e)
 
 if __name__ == "__main__":
-    log("Starting vision_worker test")
+    log("Starting vision_worker with registry system")
 
     # Test connection
     success, message = test_ollama_connection()
@@ -145,17 +189,69 @@ if __name__ == "__main__":
     if not success:
         exit(1)
 
-    # Test with sample image
-    test_image = "data/raw_images/test_image2.jpg"
-    if not os.path.exists(test_image):
-        log(f"Test image not found: {test_image}")
-        exit(1)
+    # Load registry
+    registry = load_registry()
+    log(f"Loaded registry with {len(registry)} entries")
+
+    # Determine scan directory
+    if config.RELAB_SPECIFIC_DIR and config.SPECIFIC_DIR:
+        scan_dir = os.path.join(config.PROJECT_ROOT, 'data', 'raw_images', config.SPECIFIC_DIR)
+        log(f"Re-processing specific directory: {scan_dir}")
+        # Mark all images in this dir as NOT_PROCESSED
+        for hash_val, entry in registry.items():
+            if entry['path'].startswith(scan_dir):
+                entry['status'] = 'NOT_PROCESSED'
+                entry['timestamp'] = datetime.now().isoformat()
+    else:
+        scan_dir = os.path.join(config.PROJECT_ROOT, 'data', 'raw_images')
+        log(f"Scanning directory: {scan_dir}")
+
+    # Scan for images
+    image_extensions = {'.jpg', '.jpeg', '.png', '.bmp', '.tiff'}
+    images_to_process = []
+    for root, dirs, files in os.walk(scan_dir):
+        for file in files:
+            if any(file.lower().endswith(ext) for ext in image_extensions):
+                image_path = os.path.join(root, file)
+                image_hash = calculate_image_hash(image_path)
+                if image_hash not in registry or registry[image_hash]['status'] == 'NOT_PROCESSED':
+                    images_to_process.append((image_path, image_hash))
+                    registry[image_hash] = {
+                        'status': 'NOT_PROCESSED',
+                        'path': image_path,
+                        'timestamp': datetime.now().isoformat()
+                    }
+
+    log(f"Found {len(images_to_process)} images to process")
+
+    # Process in batches
+    batch_size = config.VISION_BATCH_SIZE
+    processed_count = 0
 
     try:
         prompt = load_prompt()
-        result = analyze_image(test_image, prompt)
-        saved_files = process_analysis_result(result, test_image)
-        log(f"Analysis complete. Saved {len(saved_files)} chunks: {saved_files}")
+        for i in range(0, len(images_to_process), batch_size):
+            batch = images_to_process[i:i + batch_size]
+            log(f"Processing batch {i//batch_size + 1} with {len(batch)} images")
+
+            for image_path, image_hash in batch:
+                try:
+                    log(f"Processing {image_path}")
+                    result = analyze_image(image_path, prompt)
+                    saved_files = process_analysis_result(result, image_path, image_hash)
+                    registry[image_hash]['status'] = 'PROCESSED'
+                    registry[image_hash]['timestamp'] = datetime.now().isoformat()
+                    processed_count += 1
+                    log(f"Completed {image_path}, saved {len(saved_files)} files")
+                except Exception as e:
+                    log(f"Error processing {image_path}: {e}")
+                    registry[image_hash]['status'] = 'ERROR'
+                    registry[image_hash]['timestamp'] = datetime.now().isoformat()
+
+        save_registry(registry)
+        log(f"Processing complete. Processed {processed_count} images. Registry saved.")
+
     except Exception as e:
-        log(f"Error: {e}")
+        log(f"Critical error: {e}")
+        save_registry(registry)
         exit(1)
