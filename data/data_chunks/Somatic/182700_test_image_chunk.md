@@ -1,6 +1,6 @@
 ---
 axis: Somatic
-tags: []
+tags: [contrapposto]
 source: test_image.jpg
 ---
 

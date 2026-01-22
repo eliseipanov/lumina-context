@@ -12,6 +12,10 @@ def log(message):
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     print(f"[{timestamp}] {message}")
 
+def sanitize_axis_name(axis):
+    """Sanitize axis name for directory use."""
+    return re.sub(r'[^\w\-_]', '', axis)
+
 def load_prompt():
     """Load the system prompt from CURRENT_PROMPT_PATH."""
     log(f"Loading prompt from {config.CURRENT_PROMPT_PATH}")
@@ -112,11 +116,14 @@ def process_analysis_result(result, image_path):
     saved_files = []
     if 'chunks' in result:
         for chunk in result['chunks']:
-            axis = chunk.get('axis', 'Unknown')
+            raw_axis = chunk.get('axis', 'Unknown')
+            axes = [sanitize_axis_name(ax.strip()) for ax in raw_axis.split('|') if ax.strip()]
+            log(f"Detected axes: {axes}")
             content = chunk.get('content', '')
             tags = chunk.get('tags', [])
-            filepath = save_chunk(axis, content, tags, os.path.basename(image_path))
-            saved_files.append(filepath)
+            for axis in axes:
+                filepath = save_chunk(axis, content, tags, os.path.basename(image_path))
+                saved_files.append(filepath)
     return saved_files
 
 def test_ollama_connection():
@@ -139,7 +146,7 @@ if __name__ == "__main__":
         exit(1)
 
     # Test with sample image
-    test_image = "data/raw_images/test_image.jpg"
+    test_image = "data/raw_images/test_image2.jpg"
     if not os.path.exists(test_image):
         log(f"Test image not found: {test_image}")
         exit(1)
