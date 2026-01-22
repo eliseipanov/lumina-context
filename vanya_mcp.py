@@ -10,7 +10,7 @@ import atexit
 import logging
 import traceback
 from datetime import datetime
-import old_files.config_old as config_old
+import config
 from mcp.server.stdio import stdio_server
 from mcp.server import Server
 from mcp.server.models import InitializationOptions
@@ -19,7 +19,7 @@ import mcp.types as types
 
 # Configure logging
 logging.basicConfig(
-    filename='/var/www/chanker_vanya/vanya_mcp.log',
+    filename=os.path.join(config.PROJECT_ROOT, 'vanya_mcp.log'),
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
@@ -86,8 +86,8 @@ async def handle_call_tool(name: str, arguments: dict | None) -> list[types.Text
             if not url or not isinstance(url, str):
                 return [types.TextContent(type="text", text="Error: URL must be a valid string")]
             try:
-                response = requests.get(url, headers={'User-Agent': random.choice(config_old.UA_LIST)},
-                                        proxies=config_old.PROXIES, timeout=20)
+                response = requests.get(url, headers={'User-Agent': random.choice(config.UA_LIST)},
+                                        proxies=config.PROXIES, timeout=20)
                 response.raise_for_status()
                 html_raw = response.text
 
@@ -102,7 +102,7 @@ async def handle_call_tool(name: str, arguments: dict | None) -> list[types.Text
 
                 slug = re.sub(r'[^\w\-_\.]', '_', url.split('/')[-1] or "index")
                 filename = f"{slug}_{datetime.now().strftime('%H%M%S')}.md"
-                filepath = os.path.join("/var/www/chanker_vanya/raw_md", filename)
+                filepath = os.path.join(config.RAW_MD_DIR, filename)
 
                 os.makedirs(os.path.dirname(filepath), exist_ok=True)
                 with open(filepath, "w", encoding="utf-8") as f:
@@ -120,7 +120,7 @@ async def handle_call_tool(name: str, arguments: dict | None) -> list[types.Text
                 return [types.TextContent(type="text", text="Error: filepath must be a valid string")]
             
             abs_path = os.path.abspath(filepath)
-            allowed_dir = "/var/www/chanker_vanya/raw_md"
+            allowed_dir = config.RAW_MD_DIR
             if not abs_path.startswith(allowed_dir):
                 return [types.TextContent(type="text", text="Error: Access denied")]
             
@@ -144,8 +144,7 @@ async def handle_call_tool(name: str, arguments: dict | None) -> list[types.Text
                 return [types.TextContent(type="text", text="Error: Invalid arguments")]
                 
             try:
-                base_dir = "/var/www/chanker_vanya/data_chunks"
-                axis_dir = os.path.join(base_dir, axis)
+                axis_dir = os.path.join(config.CHUNKS_DIR, axis)
                 os.makedirs(axis_dir, exist_ok=True)
                 
                 slug = re.sub(r'[^\w\-_\.]', '_', source_url.split('/')[-1] or "chunk")
@@ -181,7 +180,7 @@ async def monitor_stdin(read_stream):
 
 async def main():
     # PID file
-    pid_file = '.vanya.pid'
+    pid_file = os.path.join(config.PROJECT_ROOT, '.vanya.pid')
     with open(pid_file, 'w') as f:
         f.write(str(os.getpid()))
     atexit.register(lambda: os.remove(pid_file) if os.path.exists(pid_file) else None)

@@ -5,7 +5,7 @@ import os
 import random
 import re
 from datetime import datetime
-import old_files.config_old as config_old 
+import config as config 
 
 def vanya_cleaner(text):
     """Видаляє сміття, яке заважає AI"""
@@ -14,13 +14,13 @@ def vanya_cleaner(text):
     return text.strip()
 
 def vanya_monolith():
-    url = config_old.START_URL
+    url = config.START_URL
     print(f"--- [ВАНЯ] Запуск конвеєра: {url} ---")
 
     # 1. FETCH + RAW STORAGE
     try:
-        res = requests.get(url, headers={'User-Agent': random.choice(config_old.UA_LIST)}, 
-                           proxies=config_old.PROXIES, timeout=20)
+        res = requests.get(url, headers={'User-Agent': random.choice(config.UA_LIST)}, 
+                           proxies=config.PROXIES, timeout=20)
         res.raise_for_status()
         html_raw = res.text
         

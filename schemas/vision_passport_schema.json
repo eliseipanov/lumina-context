@@ -1,0 +1,14 @@
+{
+  "origin": "live_ref",
+  "vision_analysis": {
+    "somatic": "Body language, pose details, gestures",
+    "luminance": "Lighting setup (e.g., high-key, Rembrandt, side-light)",
+    "optical": "Focal length feel, DOF, bokeh type, lens artifacts",
+    "compositional": "Rule of thirds, leading lines, framing",
+    "psychographic": "Mood, emotional impact, color story"
+  },
+  "tags": {
+    "mandatory": [], 
+    "discovery": []
+  }
+}
