@@ -31,7 +31,7 @@ VISION_BATCH_SIZE = int(os.getenv('VISION_BATCH_SIZE', 5))
 DEBUG_MODE = os.getenv('DEBUG_MODE', 'false').strip().lower() == 'true'
 
 MODEL_PROMPT_MAP = {
-    "minicpm-v:latest": os.getenv('VISION_PROMPT_MINICPM', 'live_ref_v1_minicpm-v.md').strip(),
+    "minicpm-v:latest": os.getenv('VISION_PROMPT_MINICPM', 'live_ref_v2_minicpm-v.md').strip(),
     "moondream:latest": os.getenv('VISION_PROMPT_MOONDREAM', 'live_ref_v1_moondream.md').strip()
 }
 

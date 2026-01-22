@@ -1,5 +1,14 @@
 # Lumina Mandatory Vocabulary v1.0 (English)
 
+## [Axis: Domain]
+- **photography**: Real-world captured images, light on sensor/film.
+- **anime**: Japanese animation style, cel-shading, distinct line art.
+- **digital_art**: Modern 2D/3D illustration, concept art, matte painting.
+- **oil_painting**: Traditional fine art texture, visible brushstrokes, canvas feel.
+- **drawing**: Pencil, charcoal, or ink sketches; focus on lines and hatching.
+- **cinematic_still**: High-end movie production look, specific lighting and grading.
+- **claymation**: Stop-motion style, sculpted textures, 3D tactile feel.
+
 ## [Axis: Luminance]
 - **hard_light**: Harsh shadows, sharp transitions. Triggers: direct sun, bare flash.
 - **soft_light**: Soft gradients, diffused shadows. Triggers: softbox, clouds, bounce.
