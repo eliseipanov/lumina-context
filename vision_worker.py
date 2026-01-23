@@ -74,7 +74,7 @@ def analyze_image(image_path, prompt):
     }
 
     log(f"Sending streaming request to Ollama at {url}")
-    response = requests.post(url, json=payload, timeout=180, stream=True)
+    response = requests.post(url, json=payload, timeout=config.VISION_REQUEST_TIMEOUT, stream=True)
     response.raise_for_status()
 
     accumulated_response = ""
@@ -118,40 +118,13 @@ def analyze_image(image_path, prompt):
         log(f"Failed string (first 200 chars): {response_text[:200]}")
         raise
 
-def save_consolidated_chunks(axis, chunks, image_name, image_hash):
-    """Save all chunks for an axis from one image into a single file."""
-    axis_dir = os.path.join(config.CHUNKS_DIR, axis)
-    os.makedirs(axis_dir, exist_ok=True)
-
-    filename = f"{image_name}_{image_hash}.md"
-    filepath = os.path.join(axis_dir, filename)
-
-    # Collect all tags
-    all_tags = list(set(tag for chunk in chunks for tag in chunk['tags']))
-
-    # Concatenate contents with separators
-    contents = []
-    for i, chunk in enumerate(chunks):
-        if i > 0:
-            contents.append("\n---\n")
-        contents.append(chunk['content'])
-
-    full_content = ''.join(contents)
-
-    yaml_header = f"---\naxis: {axis}\ntags: {json.dumps(all_tags)}\nsource: {image_name}\n---\n\n"
-    with open(filepath, 'w', encoding='utf-8') as f:
-        f.write(yaml_header + full_content)
-
-    return filepath
-
 def process_analysis_result(result, image_path, image_hash):
-    """Process the JSON result and save consolidated chunks."""
-    saved_files = []
+    """Process the JSON result and save atomic files per axis."""
     image_name = os.path.splitext(os.path.basename(image_path))[0]
 
+    axis_data = {}
+    saved_files = []
     if 'chunks' in result:
-        # Group chunks by axis
-        axis_chunks = {}
         for chunk in result['chunks']:
             raw_axis = chunk.get('axis', 'Unknown')
             axes = [sanitize_axis_name(ax.strip()) for ax in raw_axis.split('|') if ax.strip()]
@@ -159,14 +132,23 @@ def process_analysis_result(result, image_path, image_hash):
             content = chunk.get('content', '')
             tags = chunk.get('tags', [])
             for axis in axes:
-                if axis not in axis_chunks:
-                    axis_chunks[axis] = []
-                axis_chunks[axis].append({'content': content, 'tags': tags})
+                if axis not in axis_data:
+                    axis_data[axis] = {'contents': [], 'tags': set()}
+                axis_data[axis]['contents'].append(content)
+                axis_data[axis]['tags'].update(tags)
 
-        # Save consolidated files
-        for axis, chunks in axis_chunks.items():
-            filepath = save_consolidated_chunks(axis, chunks, image_name, image_hash)
-            saved_files.append(filepath)
+    for axis, data in axis_data.items():
+        all_tags = list(data['tags'])
+        full_content = '\n\n'.join(data['contents'])
+        axis_dir = os.path.join(config.CHUNKS_DIR, axis)
+        os.makedirs(axis_dir, exist_ok=True)
+        filename = f"{image_name}_{image_hash}.md"
+        filepath = os.path.join(axis_dir, filename)
+        yaml_header = f"---\naxis: {axis}\ntags: {json.dumps(all_tags)}\nimage: {image_name}\nhash: {image_hash}\n---\n\n"
+        with open(filepath, 'w', encoding='utf-8') as f:
+            f.write(yaml_header + full_content)
+        saved_files.append(filepath)
+        log(f"Saved {axis} to {filepath}")
 
     return saved_files
 
@@ -237,16 +219,24 @@ if __name__ == "__main__":
             for image_path, image_hash in batch:
                 try:
                     log(f"Processing {image_path}")
+                    # Set to PROCESSING and save immediately
+                    registry[image_hash]['status'] = 'PROCESSING'
+                    registry[image_hash]['timestamp'] = datetime.now().isoformat()
+                    save_registry(registry)
+
                     result = analyze_image(image_path, prompt)
                     saved_files = process_analysis_result(result, image_path, image_hash)
+
                     registry[image_hash]['status'] = 'PROCESSED'
                     registry[image_hash]['timestamp'] = datetime.now().isoformat()
+                    save_registry(registry)
                     processed_count += 1
-                    log(f"Completed {image_path}, saved {len(saved_files)} files")
+                    log(f"Completed {image_path}, saved {len(saved_files)} axis files")
                 except Exception as e:
                     log(f"Error processing {image_path}: {e}")
                     registry[image_hash]['status'] = 'ERROR'
                     registry[image_hash]['timestamp'] = datetime.now().isoformat()
+                    save_registry(registry)
 
         save_registry(registry)
         log(f"Processing complete. Processed {processed_count} images. Registry saved.")

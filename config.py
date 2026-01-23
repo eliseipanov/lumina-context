@@ -31,6 +31,7 @@ VISION_BATCH_SIZE = int(os.getenv('VISION_BATCH_SIZE', 5))
 DEBUG_MODE = os.getenv('DEBUG_MODE', 'false').strip().lower() == 'true'
 RELAB_SPECIFIC_DIR = os.getenv('RELAB_SPECIFIC_DIR', 'false').strip().lower() == 'true'
 SPECIFIC_DIR = os.getenv('SPECIFIC_DIR', '').strip()
+VISION_REQUEST_TIMEOUT = int(os.getenv('VISION_REQUEST_TIMEOUT', 600))
 
 MODEL_PROMPT_MAP = {
     "minicpm-v:latest": os.getenv('VISION_PROMPT_MINICPM', 'live_ref_v2_minicpm-v.md').strip(),
