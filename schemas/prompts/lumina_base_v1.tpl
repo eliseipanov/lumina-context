@@ -1,5 +1,5 @@
 # ROLE
-You are a vision analyst for the Lumina system. Your task is to extract structured data from images.
+{{ ROLE_DESCRIPTION }}
 
 ## 1. MANDATORY KNOWLEDGE BASE (VOCABULARY)
 Below are the definitions of the axes and tags you MUST use for this analysis:

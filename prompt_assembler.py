@@ -3,9 +3,10 @@ import json
 import re
 from typing import List, Dict, Any
 import config
+from jinja2 import Template
 
 class PromptAssembler:
-    """Dynamic prompt assembler for Lumina Vision Engine."""
+    """Dynamic prompt assembler for Lumina Vision Engine using Jinja2."""
     
     def __init__(self):
         """Initialize the prompt assembler with template and configuration."""
@@ -79,7 +80,7 @@ class PromptAssembler:
             return f.read()
     
     def render_system_prompt(self, active_axes_list: List[str]) -> str:
-        """Render the complete system prompt with dynamic content.
+        """Render the complete system prompt with dynamic content using Jinja2.
         
         Args:
             active_axes_list: List of axis names to include in the prompt
@@ -88,7 +89,7 @@ class PromptAssembler:
             Rendered system prompt string
         """
         # Load base components
-        template = self._load_template()
+        template_content = self._load_template()
         role_description = self._load_role_description()
         system_schema_json = self._load_system_schema()
         
@@ -101,22 +102,17 @@ class PromptAssembler:
             except Exception as e:
                 raise ValueError(f"Failed to load axis data for '{axis_name}': {e}")
         
-        # Replace template placeholders
-        prompt = template.replace('{% for axis in ACTIVE_AXES %}', '')
-        prompt = prompt.replace('{% endfor %}', '')
-        prompt = prompt.replace('{{ SYSTEM_SCHEMA_JSON }}', system_schema_json)
+        # Create Jinja2 template
+        template = Template(template_content)
         
-        # Inject role description
-        prompt = prompt.replace('# ROLE', f'# ROLE\n{role_description}')
+        # Render template with context
+        context = {
+            'ROLE_DESCRIPTION': role_description,
+            'ACTIVE_AXES': active_axes_data,
+            'SYSTEM_SCHEMA_JSON': system_schema_json
+        }
         
-        # Inject axis data
-        axis_section = ""
-        for axis in active_axes_data:
-            axis_section += f"### [Axis: {axis['name']}]\n"
-            axis_section += f"Definition: {axis['definition']}\n"
-            axis_section += f"Core Tags: {axis['tags_list']}\n\n"
-        
-        prompt = prompt.replace('{% for axis in ACTIVE_AXES %}\n### [Axis: {{ axis.name }}]\nDefinition: {{ axis.definition }}\nCore Tags: {{ axis.tags_list }}\n{% endfor %}', axis_section)
+        prompt = template.render(context)
         
         return prompt.strip()
 
