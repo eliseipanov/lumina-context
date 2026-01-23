@@ -1,0 +1,12 @@
+{
+  "axis": "MOTIONLESSNESS",
+  "tags": [
+    "still"
+  ],
+  "content": "The scene is static; there are no indications of movement or action, giving a sense of calmness.",
+  "image": "test_image5",
+  "hash": "c01000b51d1a5f60421b51288a42b4bbc25dbf075cfd2c6b7010db155a706624",
+  "timestamp": "2026-01-23T16:20:31.239607",
+  "chunk_index": 3,
+  "total_chunks": 3
+}

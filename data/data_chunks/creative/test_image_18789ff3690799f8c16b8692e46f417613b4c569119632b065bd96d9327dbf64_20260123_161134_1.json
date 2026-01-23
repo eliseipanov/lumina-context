@@ -1,0 +1,13 @@
+{
+  "axis": "Color",
+  "tags": [
+    "red",
+    "white"
+  ],
+  "content": "The woman has bright red hair, which contrasts with her white translucent dress.",
+  "image": "test_image",
+  "hash": "18789ff3690799f8c16b8692e46f417613b4c569119632b065bd96d9327dbf64",
+  "timestamp": "2026-01-23T16:11:35.000483",
+  "chunk_index": 1,
+  "total_chunks": 4
+}

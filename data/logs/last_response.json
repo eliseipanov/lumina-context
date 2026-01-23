@@ -1,0 +1,26 @@
+{
+  "chunks": [
+    {
+      "axis": "PHYSICAL_FIGURATIVE",
+      "tags": [
+        "adult_content"
+      ],
+      "content": "A fully nude figure is seated in a relaxed pose, with prominent anatomical features visible."
+    },
+    {
+      "axis": "COLORISTRY",
+      "tags": [
+        "saturated",
+        "warm_hues"
+      ],
+      "content": "The illustration employs warm color tones, particularly red and orange hues that highlight the figure's skin and hair. The background includes neutral colors to contrast with the subject."
+    },
+    {
+      "axis": "MOTIONLESSNESS",
+      "tags": [
+        "still"
+      ],
+      "content": "The scene is static; there are no indications of movement or action, giving a sense of calmness."
+    }
+  ]
+}
