@@ -1,0 +1,13 @@
+{
+  "axis": "domain",
+  "tags": [
+    "photography",
+    "digital_art"
+  ],
+  "content": "This is a domain description",
+  "image": "test_image",
+  "hash": "test_hash_123",
+  "timestamp": "2026-01-23T15:54:26.915496",
+  "chunk_index": 1,
+  "total_chunks": 3
+}

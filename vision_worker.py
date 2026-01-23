@@ -8,6 +8,15 @@ import hashlib
 import config
 from datetime import datetime
 
+# Import the prompt assembler
+try:
+    from prompt_assembler import PromptAssembler, log as assembler_log
+    PROMPT_ASSEMBLER_AVAILABLE = True
+except ImportError:
+    PROMPT_ASSEMBLER_AVAILABLE = False
+    def assembler_log(message):
+        pass
+
 def log(message):
     """Log message with timestamp."""
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -40,13 +49,40 @@ def calculate_image_hash(image_path):
     return hash_sha256.hexdigest()
 
 def load_prompt():
-    """Load the system prompt from CURRENT_PROMPT_PATH."""
-    log(f"Loading prompt from {config.CURRENT_PROMPT_PATH}")
+    """Load the system prompt using dynamic assembly or fallback to static file."""
+    # Try to use the dynamic prompt assembler first
+    if PROMPT_ASSEMBLER_AVAILABLE:
+        try:
+            assembler_log("Attempting to assemble dynamic prompt...")
+            assembler = PromptAssembler()
+            prompt = assembler.render_system_prompt(config.LUMINA_ACTIVE_AXES)
+            
+            if config.DEBUG_MODE:
+                assembler_log(f"Dynamic prompt assembled successfully ({len(prompt)} characters)")
+                # Log the first 500 characters for verification
+                assembler_log(f"Prompt preview: {prompt[:500]}...")
+                
+                # Save prompt to logs directory
+                logs_dir = os.path.join(config.PROJECT_ROOT, 'data', 'logs')
+                os.makedirs(logs_dir, exist_ok=True)
+                prompt_file = os.path.join(logs_dir, 'last_prompt.md')
+                with open(prompt_file, 'w', encoding='utf-8') as f:
+                    f.write(prompt)
+                log(f"Prompt saved to {prompt_file}")
+            
+            return prompt
+            
+        except Exception as e:
+            log(f"Dynamic prompt assembly failed: {e}")
+            log("Falling back to static prompt loading...")
+    
+    # Fallback to static prompt loading
+    log(f"Loading static prompt from {config.CURRENT_PROMPT_PATH}")
     if not config.CURRENT_PROMPT_PATH or not os.path.exists(config.CURRENT_PROMPT_PATH):
         raise FileNotFoundError(f"Prompt file not found: {config.CURRENT_PROMPT_PATH}")
     with open(config.CURRENT_PROMPT_PATH, 'r', encoding='utf-8') as f:
         prompt = f.read().strip()
-    log(f"Prompt loaded successfully ({len(prompt)} characters)")
+    log(f"Static prompt loaded successfully ({len(prompt)} characters)")
     return prompt
 
 def encode_image(image_path):
@@ -112,6 +148,16 @@ def analyze_image(image_path, prompt):
         parsed = json.loads(response_text)
         duration = time.time() - start_time
         log(f"Analysis completed successfully in {duration:.2f} seconds")
+        
+        # Save formatted response to logs directory
+        if config.DEBUG_MODE:
+            logs_dir = os.path.join(config.PROJECT_ROOT, 'data', 'logs')
+            os.makedirs(logs_dir, exist_ok=True)
+            response_file = os.path.join(logs_dir, 'last_response.json')
+            with open(response_file, 'w', encoding='utf-8') as f:
+                json.dump(parsed, f, indent=2, ensure_ascii=False)
+            log(f"Formatted response saved to {response_file}")
+        
         return parsed
     except json.JSONDecodeError as e:
         log(f"JSON parsing failed: {e}")
@@ -119,37 +165,62 @@ def analyze_image(image_path, prompt):
         raise
 
 def process_analysis_result(result, image_path, image_hash):
-    """Process the JSON result and save atomic files per axis."""
+    """Process the JSON result and save chunks to appropriate directories."""
     image_name = os.path.splitext(os.path.basename(image_path))[0]
-
-    axis_data = {}
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    
     saved_files = []
-    if 'chunks' in result:
-        for chunk in result['chunks']:
-            raw_axis = chunk.get('axis', 'Unknown')
-            axes = [sanitize_axis_name(ax.strip()) for ax in raw_axis.split('|') if ax.strip()]
-            log(f"Detected axes: {axes}")
-            content = chunk.get('content', '')
-            tags = chunk.get('tags', [])
-            for axis in axes:
-                if axis not in axis_data:
-                    axis_data[axis] = {'contents': [], 'tags': set()}
-                axis_data[axis]['contents'].append(content)
-                axis_data[axis]['tags'].update(tags)
-
-    for axis, data in axis_data.items():
-        all_tags = list(data['tags'])
-        full_content = '\n\n'.join(data['contents'])
-        axis_dir = os.path.join(config.CHUNKS_DIR, axis)
-        os.makedirs(axis_dir, exist_ok=True)
-        filename = f"{image_name}_{image_hash}.md"
-        filepath = os.path.join(axis_dir, filename)
-        yaml_header = f"---\naxis: {axis}\ntags: {json.dumps(all_tags)}\nimage: {image_name}\nhash: {image_hash}\n---\n\n"
+    
+    if 'chunks' not in result:
+        log("No chunks found in analysis result")
+        return saved_files
+    
+    # Process each chunk
+    for i, chunk in enumerate(result['chunks']):
+        axis_name = chunk.get('axis', 'Unknown')
+        content = chunk.get('content', '')
+        tags = chunk.get('tags', [])
+        
+        # Sanitize axis name for directory use
+        sanitized_axis = sanitize_axis_name(axis_name)
+        
+        # Determine target directory
+        if sanitized_axis in config.LUMINA_ACTIVE_AXES:
+            # Standard axis - save to axis-specific folder
+            target_dir = os.path.join(config.CHUNKS_DIR, sanitized_axis)
+            log(f"Chunk {i+1}: Saving '{axis_name}' to axis-specific folder '{sanitized_axis}'")
+        else:
+            # Non-standard axis - save to creative folder
+            target_dir = os.path.join(config.CHUNKS_DIR, 'creative')
+            log(f"Chunk {i+1}: Saving non-standard axis '{axis_name}' to creative folder")
+        
+        # Create target directory if it doesn't exist
+        os.makedirs(target_dir, exist_ok=True)
+        
+        # Generate filename with timestamp
+        filename = f"{image_name}_{image_hash}_{timestamp}_{i+1}.json"
+        filepath = os.path.join(target_dir, filename)
+        
+        # Create chunk data structure
+        chunk_data = {
+            "axis": axis_name,
+            "tags": tags,
+            "content": content,
+            "image": image_name,
+            "hash": image_hash,
+            "timestamp": datetime.now().isoformat(),
+            "chunk_index": i + 1,
+            "total_chunks": len(result['chunks'])
+        }
+        
+        # Save chunk as JSON file
         with open(filepath, 'w', encoding='utf-8') as f:
-            f.write(yaml_header + full_content)
+            json.dump(chunk_data, f, indent=2, ensure_ascii=False)
+        
         saved_files.append(filepath)
-        log(f"Saved {axis} to {filepath}")
-
+        log(f"Saved chunk {i+1}/{len(result['chunks'])} to {filepath}")
+    
+    log(f"Analysis result processed: {len(saved_files)} chunks saved")
     return saved_files
 
 def test_ollama_connection():

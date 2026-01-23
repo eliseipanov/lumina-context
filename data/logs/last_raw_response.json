@@ -1,0 +1,3 @@
+{
+  "response": "{\n  \"project\": \"Chanker Vanya / Lumina\",\n  \"version\": \"1.0\",\n  \"paths\": {\n    \"raw_data\": \"data/raw_md/\",\n    \"catalog\": \"data/catalog/\",\n    \"chunks\": \"data/chunks/\",\n    \"vocabulary\": \"vocab/lumina_vocabulary.md\"\n  },\n  \"passport_structure\": {\n    \"required_fields\": [\n      \"domain\",\n      \"scene_context\",\n      \"summary\",\n      \"axes_scores\",\n      \"mandatory_tags\",\n      \"discovery_tags\"\n    ],\n    \"axes\": [\n      \"luminance\",\n      \"optical\",\n      \"somatic\",\n      \"material\",\n      \"compositional\",\n      \"psychographic\"\n    ]\n  },\n  \"db_mapping\": {\n    \"table_name\": \"passports\",\n    \"primary_key\": \"id\",\n    \"json_column\": \"data\"\n  }\n}"
+}

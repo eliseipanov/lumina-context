@@ -39,3 +39,8 @@ MODEL_PROMPT_MAP = {
 }
 
 CURRENT_PROMPT_PATH = os.path.join(PROJECT_ROOT, 'schemas', 'prompts', MODEL_PROMPT_MAP.get(VISION_MODEL_NAME)) if VISION_MODEL_NAME else None
+
+# Lumina Vision Lab System Prompt Orchestration
+LUMINA_TEMPLATE = os.getenv('LUMINA_TEMPLATE', 'lumina_base_v1.tpl').strip()
+LUMINA_ROLE = os.getenv('LUMINA_ROLE', 'architect_v1.md').strip()
+LUMINA_ACTIVE_AXES = [axis.strip() for axis in os.getenv('LUMINA_ACTIVE_AXES', 'domain,somatic,optical,composition,psychographic,material,context,sartorial').split(',') if axis.strip()]

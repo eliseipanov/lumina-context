@@ -1,0 +1,14 @@
+{
+  "chunks": [
+    {
+      "axis": "Axis_Name_1",
+      "tags": ["tag1", "tag2"],
+      "content": "Description of the first visual layer..."
+    },
+    {
+      "axis": "Axis_Name_2",
+      "tags": ["tag3", "tag4"],
+      "content": "Description of the second visual layer..."
+    }
+  ]
+}

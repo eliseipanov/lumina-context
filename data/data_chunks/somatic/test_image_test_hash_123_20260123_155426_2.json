@@ -1,0 +1,13 @@
+{
+  "axis": "somatic",
+  "tags": [
+    "pose",
+    "gesture"
+  ],
+  "content": "This is a somatic description",
+  "image": "test_image",
+  "hash": "test_hash_123",
+  "timestamp": "2026-01-23T15:54:26.917170",
+  "chunk_index": 2,
+  "total_chunks": 3
+}
